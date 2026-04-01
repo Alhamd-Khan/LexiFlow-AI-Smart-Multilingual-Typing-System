@@ -1,4 +1,4 @@
-﻿import { motion, useScroll, useTransform, useSpring } from 'framer-motion';
+import { motion, useScroll, useTransform, useSpring } from 'framer-motion';
 import { useRef, useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import MainLogo from '../components/MainLogo';
@@ -42,7 +42,13 @@ const LandingPage = () => {
       const scrollableDistance = containerRef.current!.clientHeight - window.innerHeight;
       let progress = (scrollY - offsetTop) / scrollableDistance;
       progress = Math.max(0, Math.min(1, progress));
-      splineApp.setVariable('scrollProgress', progress);
+      // Only set if variable exists to avoid console errors
+      try {
+        splineApp.setVariable('scrollProgress', progress);
+      } catch (e) {
+        // Spline variable might not be created in the editor yet
+      }
+
     };
 
     window.addEventListener('scroll', handleScroll);
