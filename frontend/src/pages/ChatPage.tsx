@@ -259,6 +259,13 @@ export default function ChatPage() {
     }
   }, [selectedUser]);
 
+  // Force scroll to bottom when history finishes loading for a user
+  useEffect(() => {
+    if (!loadingHistory && selectedUser && messages.length > 0) {
+      scrollToBottom('auto'); // snap instantly on first load
+    }
+  }, [loadingHistory, selectedUser]);
+
   const handleTypingChange = (newValue: string) => {
     setMessage(newValue);
 
