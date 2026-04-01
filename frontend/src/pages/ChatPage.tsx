@@ -119,6 +119,7 @@ export default function ChatPage() {
   const { user } = useAuthStore();
   const { setTotalUnread } = useChatStore();
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
   const selectedUserRef = useRef<Contact | null>(null);
   const typingTimeoutRef = useRef<number | null>(null);
 
@@ -230,7 +231,27 @@ export default function ChatPage() {
     };
   }, [user, fetchContacts]);
 
-  useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
+  const scrollToBottom = (behavior: ScrollBehavior = 'smooth') => {
+    // A small timeout ensures the bubble is rendered and height is calculated correctly
+    setTimeout(() => {
+      messagesEndRef.current?.scrollIntoView({ behavior, block: 'end' });
+    }, 10);
+  };
+
+  // Improved Smart Scroll: Only auto-scroll on new messages if near the bottom
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    const { scrollTop, scrollHeight, clientHeight } = container;
+    const isAtBottom = scrollHeight - scrollTop - clientHeight < 150; // threshold
+    const lastMsgIsMe = messages[messages.length - 1]?.fromId === user?.id;
+
+    // If I sent it, always scroll. If it's incoming, only scroll if I'm already at the bottom.
+    if (lastMsgIsMe || isAtBottom) {
+      scrollToBottom('smooth');
+    }
+  }, [messages, user?.id]);
 
   useEffect(() => {
     if (!selectedUser) {
@@ -410,7 +431,10 @@ export default function ChatPage() {
           </div>
 
           {/* Messages */}
-          <div className="mb-4 md:mb-6 flex min-h-0 flex-1 flex-col overflow-y-auto px-1 md:px-2">
+          <div 
+            ref={scrollContainerRef}
+            className="mb-4 md:mb-6 flex min-h-0 flex-1 flex-col overflow-y-auto px-1 md:px-2 scroll-smooth"
+          >
             {loadingHistory && (
               <div className="m-auto text-[#4a40e0] text-sm font-medium animate-pulse">Loading messages...</div>
             )}
