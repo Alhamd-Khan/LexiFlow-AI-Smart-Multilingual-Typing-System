@@ -1,0 +1,80 @@
+<svg width="640" height="180" viewBox="0 0 640 180" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <g filter="url(#filter0_d)">
+    <path opacity="0.1" d="M90 140C112.091 140 130 122.091 130 100C130 77.9086 112.091 60 90 60C67.9086 60 50 77.9086 50 100C50 122.091 67.9086 140 90 140Z" fill="url(#paint0_linear)"/>
+    <g opacity="0.4">
+      <path d="M70 86L80 100" stroke="url(#paint1_linear)" stroke-width="2"/>
+      <path d="M70 114L80 100" stroke="url(#paint2_linear)" stroke-width="2"/>
+      <path d="M110 86L100 100" stroke="url(#paint3_linear)" stroke-width="2"/>
+      <path d="M110 114L100 100" stroke="url(#paint4_linear)" stroke-width="2"/>
+      <path d="M80 100H100" stroke="url(#paint5_linear)" stroke-width="2"/>
+    </g>
+    <g opacity="0.7">
+      <path d="M63 100C73 93.3 83 93.3 93 100" stroke="url(#paint6_linear)" stroke-width="2.5" stroke-linecap="round"/>
+      <path d="M87 100C97 106.7 107 106.7 117 100" stroke="url(#paint7_linear)" stroke-width="2.5" stroke-linecap="round"/>
+    </g>
+    <circle cx="90" cy="100" r="12" fill="url(#paint8_linear)"/>
+  </g>
+
+  <text x="165" y="98" fill="url(#paint9_linear)" font-size="52" font-family="Segoe UI, Inter, Arial, sans-serif" font-weight="800" letter-spacing="0.5">LexiFlow AI</text>
+  <text x="168" y="124" fill="#4A5565" font-size="15" font-family="Segoe UI, Inter, Arial, sans-serif" font-weight="600" letter-spacing="0.3">Multilingual workspace</text>
+
+  <defs>
+    <filter id="filter0_d" x="42" y="56" width="96" height="96" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feFlood flood-opacity="0" result="BackgroundImageFix"/>
+      <feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
+      <feOffset dy="2"/>
+      <feGaussianBlur stdDeviation="2"/>
+      <feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.15 0"/>
+      <feBlend mode="normal" in2="BackgroundImageFix" result="effect1_dropShadow"/>
+      <feBlend mode="normal" in="SourceGraphic" in2="effect1_dropShadow" result="shape"/>
+    </filter>
+
+    <linearGradient id="paint0_linear" x1="50" y1="60" x2="130" y2="140" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#6366F1"/>
+      <stop offset="0.5" stop-color="#8B5CF6"/>
+      <stop offset="1" stop-color="#D946EF"/>
+    </linearGradient>
+    <linearGradient id="paint1_linear" x1="70" y1="86" x2="130" y2="146" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#6366F1"/>
+      <stop offset="0.5" stop-color="#8B5CF6"/>
+      <stop offset="1" stop-color="#D946EF"/>
+    </linearGradient>
+    <linearGradient id="paint2_linear" x1="70" y1="100" x2="130" y2="160" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#6366F1"/>
+      <stop offset="0.5" stop-color="#8B5CF6"/>
+      <stop offset="1" stop-color="#D946EF"/>
+    </linearGradient>
+    <linearGradient id="paint3_linear" x1="100" y1="86" x2="160" y2="146" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#6366F1"/>
+      <stop offset="0.5" stop-color="#8B5CF6"/>
+      <stop offset="1" stop-color="#D946EF"/>
+    </linearGradient>
+    <linearGradient id="paint4_linear" x1="100" y1="100" x2="160" y2="160" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#6366F1"/>
+      <stop offset="0.5" stop-color="#8B5CF6"/>
+      <stop offset="1" stop-color="#D946EF"/>
+    </linearGradient>
+    <linearGradient id="paint5_linear" x1="80" y1="100" x2="100" y2="100" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#6366F1"/>
+      <stop offset="0.5" stop-color="#8B5CF6"/>
+      <stop offset="1" stop-color="#D946EF"/>
+    </linearGradient>
+    <linearGradient id="paint6_linear" x1="63" y1="93" x2="117" y2="130" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#06B6D4"/>
+      <stop offset="1" stop-color="#3B82F6"/>
+    </linearGradient>
+    <linearGradient id="paint7_linear" x1="87" y1="100" x2="141" y2="137" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#06B6D4"/>
+      <stop offset="1" stop-color="#3B82F6"/>
+    </linearGradient>
+    <linearGradient id="paint8_linear" x1="78" y1="88" x2="102" y2="112" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#06B6D4"/>
+      <stop offset="1" stop-color="#3B82F6"/>
+    </linearGradient>
+    <linearGradient id="paint9_linear" x1="165" y1="65" x2="460" y2="150" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#615FFF"/>
+      <stop offset="0.5" stop-color="#AD46FF"/>
+      <stop offset="1" stop-color="#E12AFB"/>
+    </linearGradient>
+  </defs>
+</svg>

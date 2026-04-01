@@ -1,0 +1,327 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap');
+}
+
+:root {
+  /* Luminous Ether Palette -> Lumina Glass */
+  --surface: rgba(255, 255, 255, 0.4);
+  --surface-low: rgba(255, 255, 255, 0.7);
+  --surface-lowest: rgba(255, 255, 255, 0.6);
+  --surface-highest: rgba(255, 255, 255, 0.85);
+  
+  --primary: #4a40e0;
+  --primary-dim: #3d30d4;
+  --primary-container: #9795ff;
+  
+  --on-surface: #2c2f31;
+  --on-surface-variant: #595c5e;
+  --outline-variant: rgba(255, 255, 255, 0.5); /* Ghost Border */
+
+  /* Vibrant Abstract Gradient */
+  --bg-gradient: linear-gradient(135deg, #eef2f3 0%, #d8e5ff 30%, #fbdcf2 70%, #f4f1ff 100%);
+  --ambient-shadow: 0 20px 40px -10px rgba(74, 64, 224, 0.05), 0 1px 8px rgba(0, 0, 0, 0.02);
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: 'Inter', 'Noto Sans', 'Noto Sans Arabic', 'Noto Sans Devanagari', 'Noto Sans Bengali', 'Noto Sans Tamil', 'Noto Sans Telugu', 'Noto Sans Thai', 'Noto Sans JP', 'Noto Sans KR', 'Noto Sans SC', 'Noto Sans Hebrew', 'Noto Sans Myanmar', 'Noto Sans Kannada', 'Noto Sans Malayalam', 'Noto Sans Gujarati', 'Noto Sans Gurmukhi', 'Noto Sans Sinhala', 'Noto Sans Lao', 'Noto Sans Khmer', 'Noto Sans Ethiopic', 'Noto Sans Georgian', 'Noto Sans Oriya', -apple-system, sans-serif;
+  background: var(--bg-gradient);
+  background-attachment: fixed;
+  color: var(--on-surface);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  cursor: none;
+}
+
+body * {
+  cursor: none !important;
+}
+
+/* Restore default cursor on touch/pointer-coarse devices (phones, tablets) */
+@media (hover: none) and (pointer: coarse) {
+  body {
+    cursor: auto;
+  }
+  body * {
+    cursor: auto !important;
+  }
+}
+
+h1, h2, h3, h4, h5, h6, .display-font, .title-font {
+  font-family: 'Manrope', -apple-system, sans-serif;
+  letter-spacing: -0.02em;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+/* Base utility overrides */
+.dark, .dark * {
+  /* Enforce Light Theme Only */
+  color-scheme: light;
+}
+
+@layer components {
+
+  /* Glassmorphism Tiers (Lumina Glass) */
+  /* Tier 1 - Canvas / Main Editor */
+  .surface-elevated {
+    background: var(--surface-lowest);
+    backdrop-filter: blur(25px) saturate(120%);
+    -webkit-backdrop-filter: blur(25px) saturate(120%);
+    border: 1px solid var(--outline-variant);
+    box-shadow: var(--ambient-shadow);
+  }
+
+  /* Tier 2 - Sidebars / Structural utility */
+  .surface-structural {
+    background: var(--surface-low);
+    backdrop-filter: blur(30px) saturate(120%);
+    -webkit-backdrop-filter: blur(30px) saturate(120%);
+    border: 1px solid var(--outline-variant);
+  }
+
+  /* Tier 3 - Floating Modals / Toolbars / Cards */
+  .glass-tier-3, .card, .glass-card, .app-panel, .app-panel-muted {
+    background: var(--surface-highest);
+    backdrop-filter: blur(40px) saturate(120%);
+    -webkit-backdrop-filter: blur(40px) saturate(120%);
+    border-radius: 1.5rem; /* xl */
+    border: 1px solid var(--outline-variant);
+    box-shadow: var(--ambient-shadow);
+    transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .card:hover, .glass-card:hover, .surface-elevated:hover {
+    transform: translateY(-4px) scale(1.005);
+    box-shadow: 0 30px 60px -12px rgba(74, 64, 224, 0.1); /* Indigo ambient glow */
+    border-color: rgba(255, 255, 255, 0.8);
+  }
+
+  /* Core Layout Structures */
+  .app-shell {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    background: transparent;
+  }
+
+  .app-sidebar {
+    background: var(--surface-low);
+    backdrop-filter: blur(30px) saturate(120%);
+    -webkit-backdrop-filter: blur(30px) saturate(120%);
+    border-right: 1px solid var(--outline-variant);
+  }
+
+  .app-page {
+    @apply relative mx-auto w-full max-w-7xl px-4 md:px-12 py-8;
+  }
+
+  /* Mobile bottom nav safe area */
+  @media (max-width: 767px) {
+    .app-page {
+      padding-bottom: 5rem;
+    }
+  }
+
+  .app-page-title {
+    @apply text-4xl font-extrabold tracking-tight text-[#2c2f31] mb-6;
+    font-family: 'Manrope', sans-serif;
+  }
+
+  .app-page-copy {
+    @apply text-base leading-relaxed text-[#595c5e] mb-10;
+  }
+
+  /* Glassmorphism Generic Tooling */
+  .glass {
+    background: rgba(255, 255, 255, 0.5);
+    backdrop-filter: blur(25px) saturate(120%);
+    -webkit-backdrop-filter: blur(25px) saturate(120%);
+    border: 1px solid var(--outline-variant);
+    box-shadow: var(--ambient-shadow);
+  }
+
+  /* Modern Inputs - Ghost to Solid */
+  .app-input, .app-select {
+    @apply w-full px-4 py-3 text-base text-[#2c2f31] outline-none transition-all duration-300;
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid rgba(171, 173, 175, 0.2);
+    border-radius: 0;
+  }
+
+  .app-input:focus, .app-select:focus {
+    transform: scale(1.02);
+    background: var(--surface-lowest);
+    border-radius: 0.75rem;
+    border-bottom-color: transparent;
+    box-shadow: 0 10px 30px -5px rgba(74, 64, 224, 0.12); /* Brighter border glow */
+  }
+
+  /* Buttons - The Tactile Interaction */
+  .btn-primary, .app-button-primary {
+    @apply inline-flex items-center justify-center px-6 py-3 font-bold text-white transition-all duration-300;
+    background: linear-gradient(135deg, var(--primary), var(--primary-dim));
+    border-radius: 0.75rem;
+    border: none;
+    box-shadow: 0 8px 20px -4px rgba(74, 64, 224, 0.35);
+  }
+
+  .btn-primary:hover, .app-button-primary:hover {
+    transform: translateY(-3px) scale(1.02);
+    box-shadow: 0 14px 30px -5px rgba(74, 64, 224, 0.5);
+  }
+
+  .btn-primary:active, .app-button-primary:active {
+    transform: translateY(1px) scale(0.96);
+    box-shadow: 0 4px 10px -2px rgba(74, 64, 224, 0.3);
+  }
+
+  .app-button-secondary, .glass-btn {
+    @apply inline-flex items-center justify-center px-5 py-2.5 font-bold transition-all duration-300;
+    background: var(--surface-lowest);
+    color: var(--primary);
+    border-radius: 0.75rem;
+    border: 1px solid var(--outline-variant);
+    box-shadow: 0 4px 12px -2px rgba(44, 47, 49, 0.05);
+  }
+
+  .app-button-secondary:hover, .glass-btn:hover {
+    background: var(--surface-low);
+    transform: translateY(-2px) scale(1.02);
+    box-shadow: 0 8px 16px -2px rgba(44, 47, 49, 0.08);
+  }
+  
+  .app-button-secondary:active, .glass-btn:active {
+    transform: translateY(1px) scale(0.96);
+    box-shadow: 0 2px 6px -1px rgba(44, 47, 49, 0.04);
+  }
+
+  /* Editor Canvas Context */
+  .editor-canvas {
+    @apply relative w-full h-[600px] overflow-hidden;
+    background: var(--surface-lowest);
+    border-radius: 1.5rem;
+    box-shadow: var(--ambient-shadow);
+    border: 1px solid var(--outline-variant);
+    transition: all 0.4s ease;
+  }
+
+  .editor-toolbar {
+    @apply flex items-center justify-start gap-4 px-6 py-3;
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(20px);
+    border-radius: 9999px; /* full/pill */
+    border: 1px solid var(--outline-variant);
+    box-shadow: var(--ambient-shadow);
+    margin: 1rem 0;
+  }
+
+  .editor-tool {
+    @apply inline-flex items-center justify-center text-[#595c5e] font-medium transition-all;
+    background: transparent;
+    border: none;
+    border-radius: 0.5rem;
+    padding: 0.5rem 0.75rem;
+  }
+
+  .editor-tool:hover {
+    background: var(--surface-low);
+    color: var(--primary);
+  }
+
+  /* Chat Interface Context */
+  .chat-area {
+    background: var(--surface);
+    border-radius: 1.5rem;
+  }
+
+  .message {
+    animation: messageSlide 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .message-user {
+    background: linear-gradient(135deg, var(--primary), var(--primary-dim));
+    color: white;
+    padding: 0.75rem 1.25rem;
+    border-radius: 1rem 1rem 0.25rem 1rem;
+    box-shadow: 0 8px 15px -4px rgba(74, 64, 224, 0.2);
+  }
+
+  .message-other {
+    background: var(--surface-lowest);
+    color: var(--on-surface);
+    padding: 0.75rem 1.25rem;
+    border-radius: 1rem 1rem 1rem 0.25rem;
+    box-shadow: var(--ambient-shadow);
+    border: 1px solid var(--outline-variant);
+  }
+
+  .typing span {
+    width: 6px;
+    height: 6px;
+    margin: 0 2px;
+    background: var(--primary);
+    border-radius: 50%;
+    display: inline-block;
+    animation: typing 1.4s infinite;
+  }
+
+  .typing span:nth-child(2) { animation-delay: 0.2s; }
+  .typing span:nth-child(3) { animation-delay: 0.4s; }
+
+  /* Navigation Sidebar Enhancements */
+  .nav-btn-inactive {
+    color: var(--on-surface-variant);
+    background: transparent;
+    border: none;
+    box-shadow: none;
+  }
+  
+  .nav-btn-active {
+    background: var(--surface-lowest);
+    color: var(--on-surface);
+    box-shadow: var(--ambient-shadow);
+    position: relative;
+    border-radius: 0.75rem;
+  }
+
+  .nav-btn-active::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    height: 60%;
+    width: 4px;
+    background: var(--primary);
+    border-radius: 2px;
+  }
+
+  /* Page / Element Fade Ins */
+  .fade-in {
+    animation: fadeIn 0.4s ease-out;
+  }
+}
+
+@keyframes messageSlide {
+  from { opacity: 0; transform: translateY(12px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes typing {
+  0%, 80%, 100% { opacity: 0.3; transform: scale(1); }
+  40% { opacity: 1; transform: scale(1.2); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
