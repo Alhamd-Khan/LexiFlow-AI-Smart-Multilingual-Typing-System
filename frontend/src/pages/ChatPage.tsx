@@ -261,62 +261,70 @@ export default function ChatPage() {
   }, [user, fetchContacts]);
 
   const scrollToBottom = (behavior: ScrollBehavior = 'smooth') => {
-    // 50ms delay helps with layout stability across different browsers
-    setTimeout(() => {
-      const container = scrollContainerRef.current;
-      if (!container) return;
-      
-      if (behavior === 'auto') {
-        container.scrollTop = container.scrollHeight;
-      } else {
-        container.scrollTo({
-          top: container.scrollHeight,
-          behavior: 'smooth'
+    // requestAnimationFrame ensures the DOM has actually updated and painted 
+    // before we try to measure the scrollHeight or scroll.
+    requestAnimationFrame(() => {
+      if (messagesEndRef.current) {
+        messagesEndRef.current.scrollIntoView({ 
+          behavior: behavior === 'auto' ? 'instant' : 'smooth',
+          block: 'end'
         });
       }
-    }, 50);
+    });
   };
 
-  const handleScroll = () => {
+  // Robust scroll status tracking
+  const handleScroll = useCallback(() => {
     const container = scrollContainerRef.current;
     if (!container) return;
+    
     const { scrollTop, scrollHeight, clientHeight } = container;
-    const isAtBottom = scrollHeight - scrollTop - clientHeight < 100;
-    setIsScrolledUp(!isAtBottom);
-    if (isAtBottom) {
+    // 50px buffer to account for rounding or fractional pixels
+    const atBottom = scrollHeight - scrollTop - clientHeight < 50;
+    
+    // Only update state if needed to prevent layout thrashing
+    setIsScrolledUp(prev => {
+      if (prev !== !atBottom) return !atBottom;
+      return prev;
+    });
+
+    if (atBottom) {
       setNewMessagesWhileScrolledUp(0);
     }
-  };
+  }, []);
 
-  // Improved Smart Scroll: Only auto-scroll on new messages if near the bottom
+  // ── UNIFIED AUTO-SCROLL EFFECT ──────────────────────────────────────────────
+  // Handles history loading, self-sent, and incoming messages in one place.
   useEffect(() => {
+    if (loadingHistory || !selectedUser || messages.length === 0) return;
+
+    const lastMsg = messages[messages.length - 1];
+    const sentByMe = lastMsg.fromId === user?.id;
+
+    // Check if we were at the bottom before the messages updated
     const container = scrollContainerRef.current;
-    if (!container || loadingHistory) return;
+    const wasAtBottom = container 
+      ? (container.scrollHeight - container.scrollTop - container.clientHeight < 150)
+      : true;
 
-    const { scrollTop, scrollHeight, clientHeight } = container;
-    const isAtBottom = scrollHeight - scrollTop - clientHeight < 200; // slightly larger threshold
-    const lastMsgIsMe = messages[messages.length - 1]?.fromId === user?.id;
-
-    // If I sent it, always scroll. If it's incoming, only scroll if I'm already at the bottom.
-    if (lastMsgIsMe || isAtBottom) {
+    if (sentByMe) {
+      // If I sent it, always smooth scroll to bottom.
       scrollToBottom('smooth');
-    } else if (!lastMsgIsMe && !isAtBottom) {
+    } else if (wasAtBottom) {
+      // If incoming and user is at bottom, smooth scroll.
+      scrollToBottom('smooth');
+    } else {
+      // If incoming and user has scrolled up, don't force scroll, but alert them.
       setNewMessagesWhileScrolledUp(prev => prev + 1);
     }
-  }, [messages, user?.id, loadingHistory]);
+  }, [messages, user?.id, loadingHistory, selectedUser]);
 
-  useEffect(() => {
-    if (!selectedUser) {
-      setIsOtherTyping(false);
-    }
-  }, [selectedUser]);
-
-  // Force scroll to bottom when history finishes loading for a user
+  // Instant snap to bottom on initial contact selection/history load finished
   useEffect(() => {
     if (!loadingHistory && selectedUser && messages.length > 0) {
-      scrollToBottom('auto'); // snap instantly on first load
+      scrollToBottom('auto');
     }
-  }, [loadingHistory, selectedUser, messages.length]);
+  }, [loadingHistory, selectedUser]);
 
   const handleTypingChange = (newValue: string) => {
     setMessage(newValue);
