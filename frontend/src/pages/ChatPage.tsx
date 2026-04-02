@@ -4,7 +4,6 @@ import { useAuthStore } from '../store/authStore';
 import { useChatStore } from '../store/chatStore';
 import api from '../api';
 import Toast from '../components/Toast';
-import { ChevronDown } from 'lucide-react';
 
 
 interface Contact {
@@ -117,8 +116,6 @@ export default function ChatPage() {
 
   // New message notification state
   const [activeToast, setActiveToast] = useState<{ message: string; type: 'info'; senderName: string } | null>(null);
-  const [isScrolledUp, setIsScrolledUp] = useState(false);
-  const [newMessagesWhileScrolledUp, setNewMessagesWhileScrolledUp] = useState(0);
 
   // Mobile: 'list' shows contacts, 'chat' shows active conversation
   const [mobileView, setMobileView] = useState<'list' | 'chat'>('list');
@@ -264,6 +261,11 @@ export default function ChatPage() {
     // requestAnimationFrame ensures the DOM has actually updated and painted 
     // before we try to measure the scrollHeight or scroll.
     requestAnimationFrame(() => {
+      const container = scrollContainerRef.current;
+      if (container) {
+        // We use both manual scrollTop and scrollIntoView for bulletproof snapping
+        container.scrollTop = container.scrollHeight;
+      }
       if (messagesEndRef.current) {
         messagesEndRef.current.scrollIntoView({ 
           behavior: behavior === 'auto' ? 'instant' : 'smooth',
@@ -273,58 +275,18 @@ export default function ChatPage() {
     });
   };
 
-  // Robust scroll status tracking
-  const handleScroll = useCallback(() => {
-    const container = scrollContainerRef.current;
-    if (!container) return;
-    
-    const { scrollTop, scrollHeight, clientHeight } = container;
-    // 50px buffer to account for rounding or fractional pixels
-    const atBottom = scrollHeight - scrollTop - clientHeight < 50;
-    
-    // Only update state if needed to prevent layout thrashing
-    setIsScrolledUp(prev => {
-      if (prev !== !atBottom) return !atBottom;
-      return prev;
-    });
-
-    if (atBottom) {
-      setNewMessagesWhileScrolledUp(0);
-    }
-  }, []);
-
-  // ── UNIFIED AUTO-SCROLL EFFECT ──────────────────────────────────────────────
-  // Handles history loading, self-sent, and incoming messages in one place.
+  // ── SIMPLE AUTO-SCROLL EFFECT ──────────────────────────────────────────────
+  // Triggers only when messages load or a new message arrives.
   useEffect(() => {
     if (loadingHistory || !selectedUser || messages.length === 0) return;
-
+    
     const lastMsg = messages[messages.length - 1];
     const sentByMe = lastMsg.fromId === user?.id;
-
-    // Check if we were at the bottom before the messages updated
-    const container = scrollContainerRef.current;
-    const wasAtBottom = container 
-      ? (container.scrollHeight - container.scrollTop - container.clientHeight < 150)
-      : true;
-
-    if (sentByMe) {
-      // If I sent it, always smooth scroll to bottom.
-      scrollToBottom('smooth');
-    } else if (wasAtBottom) {
-      // If incoming and user is at bottom, smooth scroll.
-      scrollToBottom('smooth');
-    } else {
-      // If incoming and user has scrolled up, don't force scroll, but alert them.
-      setNewMessagesWhileScrolledUp(prev => prev + 1);
-    }
-  }, [messages, user?.id, loadingHistory, selectedUser]);
-
-  // Instant snap to bottom on initial contact selection/history load finished
-  useEffect(() => {
-    if (!loadingHistory && selectedUser && messages.length > 0) {
-      scrollToBottom('auto');
-    }
-  }, [loadingHistory, selectedUser]);
+    
+    // Always scroll on load, or if it's our own message.
+    // For incoming messages, we'll keep it simple: just scroll.
+    scrollToBottom(sentByMe ? 'smooth' : 'auto');
+  }, [messages, loadingHistory, selectedUser, user?.id]);
 
   const handleTypingChange = (newValue: string) => {
     setMessage(newValue);
@@ -500,8 +462,7 @@ export default function ChatPage() {
           {/* Messages */}
           <div 
             ref={scrollContainerRef}
-            onScroll={handleScroll}
-            className="mb-4 md:mb-6 flex min-h-0 flex-1 flex-col overflow-y-auto px-1 md:px-2 relative"
+            className="mb-4 md:mb-6 flex min-h-0 flex-1 flex-col overflow-y-auto px-1 md:px-2"
           >
             {loadingHistory && (
               <div className="m-auto text-[#4a40e0] text-sm font-medium animate-pulse">Loading messages...</div>
@@ -582,21 +543,6 @@ export default function ChatPage() {
               })}
               <div ref={messagesEndRef} />
             </div>
-
-            {/* Scroll to bottom FAB */}
-            {isScrolledUp && (
-              <button
-                onClick={() => scrollToBottom('smooth')}
-                className="absolute bottom-4 right-4 md:right-8 bg-white/90 backdrop-blur-md border border-[var(--outline-variant)] text-[#4a40e0] font-bold py-2 px-4 rounded-full shadow-lg hover:shadow-xl transition-all active:scale-95 flex items-center gap-2 z-20 animate-in fade-in slide-in-from-bottom-4"
-              >
-                <ChevronDown className="w-4 h-4" />
-                {newMessagesWhileScrolledUp > 0 ? (
-                  <span className="text-xs">{newMessagesWhileScrolledUp} new message{newMessagesWhileScrolledUp > 1 ? 's' : ''}</span>
-                ) : (
-                  <span className="text-xs">Scroll to bottom</span>
-                )}
-              </button>
-            )}
           </div>
 
           {/* Input + Language Selector */}
