@@ -58,7 +58,7 @@ const LANGUAGES = [
   { code: 'Javanese', label: 'Basa Jawa — Javanese' },
   { code: 'Kannada', label: 'ಕನ್ನಡ — Kannada' },
   { code: 'Kazakh', label: 'Қазақ — Kazakh' },
-  { code: 'Khmer', label: 'ខ្មែរ — Khmer' },
+  { code: 'Khmer', label: 'ខ្មဲរ — Khmer' },
   { code: 'Kinyarwanda', label: 'Ikinyarwanda — Kinyarwanda' },
   { code: 'Korean', label: '한국어 — Korean' },
   { code: 'Lao', label: 'ລາວ — Lao' },
@@ -258,34 +258,23 @@ export default function ChatPage() {
   }, [user, fetchContacts]);
 
   const scrollToBottom = (behavior: ScrollBehavior = 'smooth') => {
-    // requestAnimationFrame ensures the DOM has actually updated and painted 
-    // before we try to measure the scrollHeight or scroll.
+    // With column-reverse, scrolling to the bottom technically means scrolling to scrollTop = 0.
     requestAnimationFrame(() => {
       const container = scrollContainerRef.current;
       if (container) {
-        // We use both manual scrollTop and scrollIntoView for bulletproof snapping
-        container.scrollTop = container.scrollHeight;
-      }
-      if (messagesEndRef.current) {
-        messagesEndRef.current.scrollIntoView({ 
-          behavior: behavior === 'auto' ? 'instant' : 'smooth',
-          block: 'end'
-        });
+        container.scrollTo({ top: 0, behavior: behavior === 'auto' ? 'instant' : 'smooth' });
       }
     });
   };
 
   // ── SIMPLE AUTO-SCROLL EFFECT ──────────────────────────────────────────────
-  // Triggers only when messages load or a new message arrives.
+  // Triggers only when we sent a message to ensure we snap to it.
   useEffect(() => {
     if (loadingHistory || !selectedUser || messages.length === 0) return;
-    
     const lastMsg = messages[messages.length - 1];
-    const sentByMe = lastMsg.fromId === user?.id;
-    
-    // Always scroll on load, or if it's our own message.
-    // For incoming messages, we'll keep it simple: just scroll.
-    scrollToBottom(sentByMe ? 'smooth' : 'auto');
+    if (lastMsg.fromId === user?.id) {
+       scrollToBottom('smooth');
+    }
   }, [messages, loadingHistory, selectedUser, user?.id]);
 
   const handleTypingChange = (newValue: string) => {
@@ -357,8 +346,9 @@ export default function ChatPage() {
 
   const totalUnread = contacts.reduce((sum, c) => sum + c.unreadCount, 0);
 
-  // ── Contacts Panel (shared between mobile list & desktop sidebar) ──────────
-  const contactsPanel = (
+  // ── Components ─────────────────────────────────────────────────────────────
+
+  const renderContactsPanel = () => (
     <div className="surface-structural flex flex-col h-full border-r border-[var(--outline-variant)]">
       <div className="flex shrink-0 items-center justify-between px-6 py-5 border-b border-[var(--outline-variant)]">
         <span className="font-extrabold text-[#2c2f31] text-[15px] uppercase tracking-wider">Messages</span>
@@ -430,16 +420,13 @@ export default function ChatPage() {
     </div>
   );
 
-  // ── Chat Area (shared between mobile chat & desktop right panel) ──────────
-  const chatArea = (
+  const renderChatArea = () => (
     <div className="flex min-w-0 flex-1 flex-col bg-transparent h-full">
       {selectedUser ? (
         <div className="flex h-full flex-col p-4 md:p-8">
-
           {/* Chat Header */}
           <div className="mb-4 md:mb-6 flex flex-shrink-0 items-center justify-between border-b border-[var(--outline-variant)] pb-4 md:pb-5">
             <div className="flex items-center gap-3 md:gap-4">
-              {/* Mobile back button */}
               <button
                 onClick={() => setMobileView('list')}
                 className="md:hidden flex items-center justify-center w-9 h-9 rounded-full bg-[rgba(255,255,255,0.6)] border border-[var(--outline-variant)] text-[#595c5e] active:scale-95 transition-all"
@@ -459,23 +446,16 @@ export default function ChatPage() {
             </div>
           </div>
 
-          {/* Messages */}
+          {/* Messages Container */}
           <div 
             ref={scrollContainerRef}
-            className="mb-4 md:mb-6 flex min-h-0 flex-1 flex-col overflow-y-auto px-1 md:px-2"
+            className="mb-4 md:mb-6 flex min-h-0 flex-1 flex-col-reverse overflow-y-auto px-1 md:px-2"
           >
-            {loadingHistory && (
-              <div className="m-auto text-[#4a40e0] text-sm font-medium animate-pulse">Loading messages...</div>
-            )}
-            {!loadingHistory && visibleMessages.length === 0 && (
-              <div className="m-auto text-[#abadaf] text-sm">No messages yet. Say hi! 👋</div>
-            )}
-            <div className="mt-auto space-y-4 pt-2">
-              {visibleMessages.map((msg, idx) => {
+            <div ref={messagesEndRef} />
+            <div className="space-y-4 pt-2">
+              {[...visibleMessages].reverse().map((msg, idx) => {
                 const isMe = msg.fromId === user?.id;
-                const msgIdx = messages.findIndex((m, i) =>
-                  m.fromId === msg.fromId && m.text === msg.text && m.createdAt === msg.createdAt && i >= 0
-                );
+                const originalIdx = messages.findIndex(m => m === msg);
                 return (
                   <div key={idx} className={`message flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
                     <div className="group relative max-w-[82%] md:max-w-[75%]">
@@ -491,66 +471,40 @@ export default function ChatPage() {
                           </div>
                         )}
                       </div>
-
-                      {/* Translate button — desktop hover, mobile tap-friendly below bubble */}
+                      
                       <button
-                        onClick={() => handleTranslate(msgIdx >= 0 ? msgIdx : idx)}
+                        onClick={() => handleTranslate(originalIdx)}
                         disabled={msg.translating}
-                        title={msg.translatedText ? `Hide translation` : `Translate to ${targetLang}`}
-                        className={`hidden md:flex absolute ${isMe ? '-left-9' : '-right-9'} top-2 opacity-0 group-hover:opacity-100 transition-all w-6 h-6 rounded-full items-center justify-center text-xs shadow-sm bg-white border border-[var(--outline-variant)] text-[#abadaf] hover:text-[#4a40e0] hover:border-[#4a40e0] hover:shadow-md ${msg.translating ? 'animate-spin' : ''}`}
+                        className={`hidden md:flex absolute ${isMe ? '-left-9' : '-right-9'} top-2 opacity-0 group-hover:opacity-100 transition-all w-6 h-6 rounded-full items-center justify-center text-xs shadow-sm bg-white border border-[var(--outline-variant)] text-[#abadaf] hover:text-[#4a40e0] hover:border-[#4a40e0] ${msg.translating ? 'animate-spin' : ''}`}
                       >
-                        {msg.translating ? (
-                          <svg className="w-3 h-3 text-[#4a40e0]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                          </svg>
-                        ) : (
-                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
-                          </svg>
-                        )}
-                      </button>
-
-                      {/* Mobile translate: small button below the bubble */}
-                      <button
-                        onClick={() => handleTranslate(msgIdx >= 0 ? msgIdx : idx)}
-                        disabled={msg.translating}
-                        className={`md:hidden mt-1 flex items-center gap-1 text-[10px] font-semibold px-2 py-1 rounded-full border transition-all ${
-                          msg.translatedText
-                            ? 'bg-[#4a40e0]/10 border-[#4a40e0]/30 text-[#4a40e0]'
-                            : 'bg-white border-[var(--outline-variant)] text-[#abadaf]'
-                        } ${isMe ? 'self-end' : 'self-start'}`}
-                      >
-                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
-                        </svg>
-                        {msg.translating ? '...' : msg.translatedText ? 'Hide' : 'Translate'}
+                         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
+                         </svg>
                       </button>
                     </div>
-
-                    {/* Translation bubble */}
                     {msg.translatedText && (
-                      <div className={`max-w-[80%] mt-2 px-4 py-2.5 rounded-xl text-[13px] leading-relaxed border-l-2 ${
-                        isMe
-                          ? 'bg-[#eef1f3] border-l-[#4a40e0] text-[#595c5e] self-end'
-                          : 'bg-[#eef1f3] border-l-[#abadaf] text-[#595c5e] self-start'
-                      }`}>
-                        <span className="font-bold mr-1.5 opacity-80">{targetLang}:</span>
+                      <div className="max-w-[80%] mt-2 px-4 py-2 bg-[#eef1f3] border-l-2 border-l-[#4a40e0] rounded-xl text-[13px] text-[#595c5e]">
                         {msg.translatedText}
                       </div>
                     )}
                   </div>
                 );
               })}
-              <div ref={messagesEndRef} />
             </div>
+            {!loadingHistory && visibleMessages.length === 0 && (
+              <div className="m-auto text-[#abadaf] text-sm py-10 text-center">No messages yet. Say hi! 👋</div>
+            )}
+            {loadingHistory && (
+              <div className="m-auto text-[#4a40e0] text-sm font-medium animate-pulse py-10 text-center">Loading messages...</div>
+            )}
           </div>
 
-          {/* Input + Language Selector */}
-          <div className="shrink-0 space-y-2 md:space-y-3 pt-2">
+          {/* Input Area */}
+          <div className="shrink-0 space-y-3 pt-2">
             <div className="relative">
               <input
                 type="text"
-                className="w-full rounded-2xl border border-[var(--outline-variant)] bg-[rgba(255,255,255,0.4)] backdrop-blur-md px-4 md:px-6 py-3.5 md:py-4 pr-14 text-[14px] md:text-[15px] text-[#2c2f31] placeholder-[#595c5e] transition-all focus:border-[#4a40e0] focus:bg-[rgba(255,255,255,0.85)] focus:outline-none focus:shadow-[0_0_0_4px_rgba(74,64,224,0.1)]"
+                className="w-full rounded-2xl border border-[var(--outline-variant)] bg-[rgba(255,255,255,0.4)] backdrop-blur-md px-6 py-4 pr-14 text-[15px] outline-none transition-all focus:border-[#4a40e0] focus:bg-[rgba(255,255,255,0.85)]"
                 placeholder={`Message ${selectedUser.username}...`}
                 value={message}
                 onChange={e => handleTypingChange(e.target.value)}
@@ -559,59 +513,41 @@ export default function ChatPage() {
               <button
                 onClick={handleSend}
                 disabled={!message.trim()}
-                className="absolute bottom-2 right-2 top-2 aspect-square rounded-xl bg-gradient-to-br from-[#4a40e0] to-[#3d30d4] flex items-center justify-center text-white transition-all active:scale-95 hover:shadow-md disabled:bg-none disabled:bg-[#d0d5d8] disabled:text-white/50"
+                className="absolute bottom-2 right-2 top-2 aspect-square rounded-xl bg-[#4a40e0] text-white flex items-center justify-center disabled:bg-[#d0d5d8]"
               >
                 <svg className="w-5 h-5 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
                 </svg>
               </button>
             </div>
-
-            {/* Language Selector row */}
-            <div className="flex items-center gap-2 pl-1 flex-wrap">
-              <svg className="w-4 h-4 text-[#9a9d9f] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
-              </svg>
-              <span className="text-[11px] font-bold text-[#abadaf] uppercase tracking-wider">To:</span>
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-[11px] font-bold text-[#abadaf] uppercase">To:</span>
               <select
                 value={targetLang}
                 onChange={e => setTargetLang(e.target.value)}
-                className="rounded-full border border-[rgba(171,173,175,0.2)] bg-transparent px-3 py-1 text-xs font-semibold text-[#595c5e] focus:border-[#4a40e0] focus:outline-none"
+                className="rounded-full border border-[rgba(171,173,175,0.2)] bg-transparent px-3 py-1 text-xs focus:border-[#4a40e0] outline-none"
               >
                 {LANGUAGES.map(l => (
                   <option key={l.code} value={l.code}>{l.label}</option>
                 ))}
               </select>
-              
               {isOtherTyping && (
-                <div className="ml-auto flex items-center gap-2 text-xs text-[#4a40e0] font-semibold bg-[#4a40e0]/5 px-3 py-1 rounded-full">
-                  <span className="hidden sm:inline">{selectedUser.username} is typing</span>
-                  <span className="sm:hidden">typing</span>
-                  <span className="typing inline-flex items-center mb-1">
-                    <span></span><span></span><span></span>
-                  </span>
+                <div className="ml-auto text-xs text-[#4a40e0] font-semibold flex items-center gap-2">
+                  <span>{selectedUser.username} is typing...</span>
                 </div>
               )}
             </div>
           </div>
-
         </div>
       ) : (
-        <div className="relative flex flex-1 flex-col items-center justify-center p-8 text-center bg-transparent m-4 md:m-6 rounded-2xl border border-[var(--outline-variant)] overflow-hidden">
-          <img 
-            src="/empty-chat-bg.gif" 
-            alt="Select conversation background" 
-            className="absolute pointer-events-none z-0 object-contain w-[120%] h-[120%] opacity-50 mix-blend-multiply transition-opacity duration-700 ease-in-out" 
-          />
-          <div className="relative z-10 flex flex-col items-center">
-            <div className="mb-6 flex h-24 w-24 items-center justify-center rounded-full glass-tier-3 shadow-sm border border-[var(--outline-variant)] backdrop-blur-xl">
-              <svg className="w-10 h-10 text-[#abadaf]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-              </svg>
-            </div>
-            <h2 className="mb-2 text-2xl font-extrabold text-[#2c2f31] font-['Manrope']">Select a conversation</h2>
-            <p className="text-[15px] text-[#595c5e] max-w-sm">Click on any user from the left panel to start chatting and sending translated messages instantly.</p>
+        <div className="flex flex-1 flex-col items-center justify-center p-8 text-center bg-transparent border border-[var(--outline-variant)] m-6 rounded-2xl">
+          <div className="mb-6 h-20 w-20 rounded-full bg-[rgba(171,173,175,0.1)] flex items-center justify-center">
+            <svg className="w-10 h-10 text-[#abadaf]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+            </svg>
           </div>
+          <h2 className="text-xl font-bold text-[#2c2f31]">Select a conversation</h2>
+          <p className="text-sm text-[#595c5e] mt-2">Choose a contact to start messaging.</p>
         </div>
       )}
     </div>
@@ -619,27 +555,19 @@ export default function ChatPage() {
 
   return (
     <>
-      {/* ── DESKTOP layout (md and up) — UNCHANGED side-by-side ── */}
-      <div className="hidden md:flex surface-elevated rounded-2xl h-[82vh] overflow-hidden border border-[var(--outline-variant)] w-full max-w-7xl mx-auto mt-8 fade-in">
-        {/* Sidebar */}
-        <div className="surface-structural flex w-[320px] shrink-0 flex-col border-r border-[var(--outline-variant)]">
-          {contactsPanel}
+      {/* Desktop */}
+      <div className="hidden md:flex surface-elevated rounded-2xl h-[85vh] overflow-hidden border border-[var(--outline-variant)] w-full max-w-7xl mx-auto mt-8 fade-in">
+        <div className="w-[320px] shrink-0 h-full">
+          {renderContactsPanel()}
         </div>
-        {/* Chat area */}
-        {chatArea}
+        {renderChatArea()}
       </div>
 
-      {/* ── MOBILE layout (< md) — single panel, switches between list/chat ── */}
-      <div className="md:hidden flex flex-col w-full fade-in" style={{ height: 'calc(100dvh - 120px)' }}>
-        {mobileView === 'list' ? (
-          <div className="surface-elevated rounded-2xl overflow-hidden border border-[var(--outline-variant)] mx-2 mt-2 flex-1 flex flex-col">
-            {contactsPanel}
-          </div>
-        ) : (
-          <div className="surface-elevated rounded-2xl overflow-hidden border border-[var(--outline-variant)] mx-2 mt-2 flex-1 flex flex-col">
-            {chatArea}
-          </div>
-        )}
+      {/* Mobile */}
+      <div className="md:hidden flex flex-col w-full h-[calc(100vh-120px)] mt-2 px-2 fade-in">
+        <div className="surface-elevated rounded-2xl overflow-hidden border border-[var(--outline-variant)] flex-1 flex flex-col">
+          {mobileView === 'list' ? renderContactsPanel() : renderChatArea()}
+        </div>
       </div>
 
       {activeToast && (
