@@ -47,7 +47,7 @@ const LANGUAGES = [
   { code: 'Greek', label: 'Ελληνικά — Greek' },
   { code: 'Gujarati', label: 'ગુજરાતી — Gujarati' },
   { code: 'Hausa', label: 'Hausa' },
-  { code: 'Hebrew', label: 'עברית — Hebrew' },
+  { code: 'Hebrew', label: 'עבריት — Hebrew' },
   { code: 'Hindi', label: 'हिंदी — Hindi' },
   { code: 'Hungarian', label: 'Magyar — Hungarian' },
   { code: 'Icelandic', label: 'Íslenska — Icelandic' },
@@ -58,7 +58,7 @@ const LANGUAGES = [
   { code: 'Javanese', label: 'Basa Jawa — Javanese' },
   { code: 'Kannada', label: 'ಕನ್ನಡ — Kannada' },
   { code: 'Kazakh', label: 'Қазақ — Kazakh' },
-  { code: 'Khmer', label: 'ខ្មဲរ — Khmer' },
+  { code: 'Khmer', label: 'ខ្មែរ — Khmer' },
   { code: 'Kinyarwanda', label: 'Ikinyarwanda — Kinyarwanda' },
   { code: 'Korean', label: '한국어 — Korean' },
   { code: 'Lao', label: 'ລາວ — Lao' },
@@ -258,24 +258,22 @@ export default function ChatPage() {
   }, [user, fetchContacts]);
 
   const scrollToBottom = (behavior: ScrollBehavior = 'smooth') => {
-    // With column-reverse, scrolling to the bottom technically means scrolling to scrollTop = 0.
     requestAnimationFrame(() => {
       const container = scrollContainerRef.current;
       if (container) {
-        container.scrollTo({ top: 0, behavior: behavior === 'auto' ? 'instant' : 'smooth' });
+        container.scrollTop = container.scrollHeight;
+      }
+      if (messagesEndRef.current) {
+        messagesEndRef.current.scrollIntoView({ behavior });
       }
     });
   };
 
-  // ── SIMPLE AUTO-SCROLL EFFECT ──────────────────────────────────────────────
-  // Triggers only when we sent a message to ensure we snap to it.
+  // ── AUTO-SCROLL EFFECT ──────────────────────────────────────────────
   useEffect(() => {
     if (loadingHistory || !selectedUser || messages.length === 0) return;
-    const lastMsg = messages[messages.length - 1];
-    if (lastMsg.fromId === user?.id) {
-       scrollToBottom('smooth');
-    }
-  }, [messages, loadingHistory, selectedUser, user?.id]);
+    scrollToBottom('smooth');
+  }, [messages, loadingHistory, selectedUser]);
 
   const handleTypingChange = (newValue: string) => {
     setMessage(newValue);
@@ -449,13 +447,19 @@ export default function ChatPage() {
           {/* Messages Container */}
           <div 
             ref={scrollContainerRef}
-            className="mb-4 md:mb-6 flex min-h-0 flex-1 flex-col-reverse overflow-y-auto px-1 md:px-2"
+            className="mb-4 md:mb-6 flex min-h-0 flex-1 flex-col overflow-y-auto px-1 md:px-2"
           >
-            <div ref={messagesEndRef} />
-            <div className="space-y-4 pt-2">
-              {[...visibleMessages].reverse().map((msg, idx) => {
+            {loadingHistory && (
+              <div className="m-auto text-[#4a40e0] text-sm font-medium animate-pulse py-10">Loading messages...</div>
+            )}
+            {!loadingHistory && visibleMessages.length === 0 && (
+              <div className="m-auto text-[#abadaf] text-sm py-10">No messages yet. Say hi! 👋</div>
+            )}
+            
+            <div className="mt-auto space-y-4 pt-2">
+              {visibleMessages.map((msg, idx) => {
                 const isMe = msg.fromId === user?.id;
-                const originalIdx = messages.findIndex(m => m === msg);
+                const msgIdx = messages.findIndex(m => m === msg);
                 return (
                   <div key={idx} className={`message flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
                     <div className="group relative max-w-[82%] md:max-w-[75%]">
@@ -471,11 +475,11 @@ export default function ChatPage() {
                           </div>
                         )}
                       </div>
-                      
+
                       <button
-                        onClick={() => handleTranslate(originalIdx)}
+                        onClick={() => handleTranslate(msgIdx >= 0 ? msgIdx : idx)}
                         disabled={msg.translating}
-                        className={`hidden md:flex absolute ${isMe ? '-left-9' : '-right-9'} top-2 opacity-0 group-hover:opacity-100 transition-all w-6 h-6 rounded-full items-center justify-center text-xs shadow-sm bg-white border border-[var(--outline-variant)] text-[#abadaf] hover:text-[#4a40e0] hover:border-[#4a40e0] ${msg.translating ? 'animate-spin' : ''}`}
+                        className={`hidden md:flex absolute ${isMe ? '-left-9' : '-right-9'} top-2 opacity-0 group-hover:opacity-100 transition-all w-6 h-6 rounded-full items-center justify-center text-xs shadow-sm bg-white border border-[var(--outline-variant)] text-[#abadaf] hover:text-[#4a40e0] ${msg.translating ? 'animate-spin' : ''}`}
                       >
                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
@@ -490,13 +494,8 @@ export default function ChatPage() {
                   </div>
                 );
               })}
+              <div ref={messagesEndRef} />
             </div>
-            {!loadingHistory && visibleMessages.length === 0 && (
-              <div className="m-auto text-[#abadaf] text-sm py-10 text-center">No messages yet. Say hi! 👋</div>
-            )}
-            {loadingHistory && (
-              <div className="m-auto text-[#4a40e0] text-sm font-medium animate-pulse py-10 text-center">Loading messages...</div>
-            )}
           </div>
 
           {/* Input Area */}
@@ -555,7 +554,6 @@ export default function ChatPage() {
 
   return (
     <>
-      {/* Desktop */}
       <div className="hidden md:flex surface-elevated rounded-2xl h-[85vh] overflow-hidden border border-[var(--outline-variant)] w-full max-w-7xl mx-auto mt-8 fade-in">
         <div className="w-[320px] shrink-0 h-full">
           {renderContactsPanel()}
@@ -563,7 +561,6 @@ export default function ChatPage() {
         {renderChatArea()}
       </div>
 
-      {/* Mobile */}
       <div className="md:hidden flex flex-col w-full h-[calc(100vh-120px)] mt-2 px-2 fade-in">
         <div className="surface-elevated rounded-2xl overflow-hidden border border-[var(--outline-variant)] flex-1 flex flex-col">
           {mobileView === 'list' ? renderContactsPanel() : renderChatArea()}
