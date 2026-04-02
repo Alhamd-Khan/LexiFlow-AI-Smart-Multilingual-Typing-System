@@ -3,6 +3,8 @@ import { socket } from '../socket';
 import { useAuthStore } from '../store/authStore';
 import { useChatStore } from '../store/chatStore';
 import api from '../api';
+import Toast from '../components/Toast';
+import { ChevronDown } from 'lucide-react';
 
 
 interface Contact {
@@ -112,6 +114,11 @@ export default function ChatPage() {
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [targetLang, setTargetLang] = useState('English');
   const [isOtherTyping, setIsOtherTyping] = useState(false);
+
+  // New message notification state
+  const [activeToast, setActiveToast] = useState<{ message: string; type: 'info'; senderName: string } | null>(null);
+  const [isScrolledUp, setIsScrolledUp] = useState(false);
+  const [newMessagesWhileScrolledUp, setNewMessagesWhileScrolledUp] = useState(0);
 
   // Mobile: 'list' shows contacts, 'chat' shows active conversation
   const [mobileView, setMobileView] = useState<'list' | 'chat'>('list');
@@ -225,33 +232,78 @@ export default function ChatPage() {
 
     socket.on('chat:typing', handleLocalTyping);
 
+    // Global listener for toasts when in other chats
+    const handleGlobalChatToast = (data: Message) => {
+      const active = selectedUserRef.current;
+      // If message is NOT from the active user and NOT from me
+      if (data.fromId !== user.id && (!active || data.fromId !== active._id)) {
+        // Find the sender name from contacts
+        setContacts(prev => {
+          const sender = prev.find(c => c._id === data.fromId);
+          if (sender) {
+            setActiveToast({
+              senderName: sender.username,
+              message: data.text,
+              type: 'info'
+            });
+          }
+          return prev;
+        });
+      }
+    };
+    socket.on('chat:message', handleGlobalChatToast);
+
     return () => {
       socket.off('chat:message', handleLocalMessage);
       socket.off('chat:typing', handleLocalTyping);
+      socket.off('chat:message', handleGlobalChatToast);
     };
   }, [user, fetchContacts]);
 
   const scrollToBottom = (behavior: ScrollBehavior = 'smooth') => {
-    // A small timeout ensures the bubble is rendered and height is calculated correctly
+    // 50ms delay helps with layout stability across different browsers
     setTimeout(() => {
-      messagesEndRef.current?.scrollIntoView({ behavior, block: 'end' });
-    }, 10);
+      const container = scrollContainerRef.current;
+      if (!container) return;
+      
+      if (behavior === 'auto') {
+        container.scrollTop = container.scrollHeight;
+      } else {
+        container.scrollTo({
+          top: container.scrollHeight,
+          behavior: 'smooth'
+        });
+      }
+    }, 50);
+  };
+
+  const handleScroll = () => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+    const { scrollTop, scrollHeight, clientHeight } = container;
+    const isAtBottom = scrollHeight - scrollTop - clientHeight < 100;
+    setIsScrolledUp(!isAtBottom);
+    if (isAtBottom) {
+      setNewMessagesWhileScrolledUp(0);
+    }
   };
 
   // Improved Smart Scroll: Only auto-scroll on new messages if near the bottom
   useEffect(() => {
     const container = scrollContainerRef.current;
-    if (!container) return;
+    if (!container || loadingHistory) return;
 
     const { scrollTop, scrollHeight, clientHeight } = container;
-    const isAtBottom = scrollHeight - scrollTop - clientHeight < 150; // threshold
+    const isAtBottom = scrollHeight - scrollTop - clientHeight < 200; // slightly larger threshold
     const lastMsgIsMe = messages[messages.length - 1]?.fromId === user?.id;
 
     // If I sent it, always scroll. If it's incoming, only scroll if I'm already at the bottom.
     if (lastMsgIsMe || isAtBottom) {
       scrollToBottom('smooth');
+    } else if (!lastMsgIsMe && !isAtBottom) {
+      setNewMessagesWhileScrolledUp(prev => prev + 1);
     }
-  }, [messages, user?.id]);
+  }, [messages, user?.id, loadingHistory]);
 
   useEffect(() => {
     if (!selectedUser) {
@@ -264,7 +316,7 @@ export default function ChatPage() {
     if (!loadingHistory && selectedUser && messages.length > 0) {
       scrollToBottom('auto'); // snap instantly on first load
     }
-  }, [loadingHistory, selectedUser]);
+  }, [loadingHistory, selectedUser, messages.length]);
 
   const handleTypingChange = (newValue: string) => {
     setMessage(newValue);
@@ -440,7 +492,8 @@ export default function ChatPage() {
           {/* Messages */}
           <div 
             ref={scrollContainerRef}
-            className="mb-4 md:mb-6 flex min-h-0 flex-1 flex-col overflow-y-auto px-1 md:px-2 scroll-smooth"
+            onScroll={handleScroll}
+            className="mb-4 md:mb-6 flex min-h-0 flex-1 flex-col overflow-y-auto px-1 md:px-2 relative"
           >
             {loadingHistory && (
               <div className="m-auto text-[#4a40e0] text-sm font-medium animate-pulse">Loading messages...</div>
@@ -521,6 +574,21 @@ export default function ChatPage() {
               })}
               <div ref={messagesEndRef} />
             </div>
+
+            {/* Scroll to bottom FAB */}
+            {isScrolledUp && (
+              <button
+                onClick={() => scrollToBottom('smooth')}
+                className="absolute bottom-4 right-4 md:right-8 bg-white/90 backdrop-blur-md border border-[var(--outline-variant)] text-[#4a40e0] font-bold py-2 px-4 rounded-full shadow-lg hover:shadow-xl transition-all active:scale-95 flex items-center gap-2 z-20 animate-in fade-in slide-in-from-bottom-4"
+              >
+                <ChevronDown className="w-4 h-4" />
+                {newMessagesWhileScrolledUp > 0 ? (
+                  <span className="text-xs">{newMessagesWhileScrolledUp} new message{newMessagesWhileScrolledUp > 1 ? 's' : ''}</span>
+                ) : (
+                  <span className="text-xs">Scroll to bottom</span>
+                )}
+              </button>
+            )}
           </div>
 
           {/* Input + Language Selector */}
@@ -619,6 +687,15 @@ export default function ChatPage() {
           </div>
         )}
       </div>
+
+      {activeToast && (
+        <Toast
+          message={`${activeToast.senderName}: ${activeToast.message}`}
+          type="info"
+          onClose={() => setActiveToast(null)}
+          duration={5000}
+        />
+      )}
     </>
   );
 }
